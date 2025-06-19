@@ -30,7 +30,7 @@ impl LanceFileVersion {
     /// Convert Stable or Next to the actual version
     pub fn resolve(&self) -> Self {
         match self {
-            Self::Stable => Self::V2_0,
+            Self::Stable => Self::V2_1,
             Self::Next => Self::V2_1,
             _ => *self,
         }
