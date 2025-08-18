@@ -103,3 +103,6 @@ test_data/venv
 # Auto-built docs
 docs/src/format/namespace/**
 docs/src/integrations/spark/**
+
+.venv
+creds

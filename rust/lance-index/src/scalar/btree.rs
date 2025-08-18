@@ -1306,14 +1306,18 @@ pub async fn train_btree_index(
         .await?;
     let mut encoded_batches = Vec::new();
     let mut batch_idx = 0;
+    let mut num_rows = 0;
     let mut batches_source = data_source.scan_ordered_chunks(batch_size).await?;
     let value_type = batches_source.schema().field(0).data_type().clone();
     while let Some(batch) = batches_source.try_next().await? {
+        num_rows += batch.num_rows();
+        println!("Processing batch: {}", batch_idx);
         debug_assert_eq!(batch.num_columns(), 2);
         debug_assert_eq!(*batch.column(1).data_type(), DataType::UInt64);
         encoded_batches.push(
             train_btree_page(batch, batch_idx, sub_index_trainer, sub_index_file.as_mut()).await?,
         );
+        println!("Done with batch: {}, total rows: {}", batch_idx, num_rows);
         batch_idx += 1;
     }
     sub_index_file.finish().await?;
