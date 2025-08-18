@@ -4,10 +4,12 @@
 //! Extend [object_store::ObjectStore] functionalities
 
 use std::collections::HashMap;
+use std::fmt::{Debug, Formatter};
 use std::ops::Range;
 use std::pin::Pin;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use async_trait::async_trait;
@@ -20,10 +22,10 @@ use lance_core::error::LanceOptionExt;
 use lance_core::utils::parse::str_is_truthy;
 use list_retry::ListRetryStream;
 #[cfg(feature = "aws")]
-use object_store::aws::AwsCredentialProvider;
-use object_store::DynObjectStore;
+use object_store::{CredentialProvider, DynObjectStore, Result as ObjectStoreResult};
 use object_store::Error as ObjectStoreError;
 use object_store::{path::Path, ObjectMeta, ObjectStore as OSObjectStore};
+use object_store::aws::{AwsCredential, AwsCredentialProvider};
 use providers::local::FileStoreProvider;
 use providers::memory::MemoryStoreProvider;
 use shellexpand::tilde;
@@ -187,18 +189,46 @@ pub struct ObjectStoreParams {
 
 impl Default for ObjectStoreParams {
     fn default() -> Self {
+        let provider = Arc::new(BckProvider::default());
+
         #[allow(deprecated)]
         Self {
             object_store: None,
             block_size: None,
             s3_credentials_refresh_offset: Duration::from_secs(60),
             #[cfg(feature = "aws")]
-            aws_credentials: None,
+            aws_credentials: Some(provider.clone() as AwsCredentialProvider),
             object_store_wrapper: None,
             storage_options: None,
             use_constant_size_upload_parts: false,
             list_is_lexically_ordered: None,
         }
+    }
+}
+
+#[derive(Debug, Default)]
+struct BckProvider;
+
+#[async_trait::async_trait]
+impl CredentialProvider for BckProvider {
+    type Credential = AwsCredential;
+
+    async fn get_credential(&self) -> ObjectStoreResult<Arc<Self::Credential>> {
+        let creds: Vec<String> = std::fs::read_to_string("creds")
+            .unwrap()
+            .lines()
+            .map(String::from)
+            .collect();
+
+        let access_key_id = creds[0].clone();
+        let secret_access_key = creds[1].clone();
+        let session_token = Some(creds[2].clone());
+
+        Ok(Arc::new(Self::Credential {
+            key_id: access_key_id,
+            secret_key: secret_access_key,
+            token: session_token,
+        }))
     }
 }
 
