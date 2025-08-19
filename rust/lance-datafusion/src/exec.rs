@@ -29,6 +29,8 @@ use datafusion::{
         DisplayAs, DisplayFormatType, ExecutionPlan, PlanProperties, SendableRecordBatchStream,
     },
 };
+use datafusion::execution::disk_manager;
+use datafusion::execution::disk_manager::DiskManagerMode;
 use datafusion_common::{DataFusionError, Statistics};
 use datafusion_physical_expr::{EquivalenceProperties, Partitioning};
 
@@ -339,9 +341,14 @@ pub fn new_session_context(options: &LanceExecutionOptions) -> SessionContext {
     if let Some(target_partition) = options.target_partition {
         session_config = session_config.with_target_partitions(target_partition);
     }
+
+    runtime_env_builder = runtime_env_builder
+        .with_disk_manager_builder(
+            DiskManagerBuilder::default()
+                .with_max_temp_directory_size(256 * 1024 * 1024 * 1024));
+
     if options.use_spilling() {
         runtime_env_builder = runtime_env_builder
-            .with_disk_manager_builder(DiskManagerBuilder::default())
             .with_memory_pool(Arc::new(FairSpillPool::new(
                 options.mem_pool_size() as usize
             )));
