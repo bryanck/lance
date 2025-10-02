@@ -64,7 +64,7 @@ use tracing::info;
 
 const BTREE_LOOKUP_NAME: &str = "page_lookup.lance";
 const BTREE_PAGES_NAME: &str = "page_data.lance";
-pub const DEFAULT_BTREE_BATCH_SIZE: u64 = 4096;
+pub const DEFAULT_BTREE_BATCH_SIZE: u64 = 1024 * 1024; // FIXME!!
 const BATCH_SIZE_META_KEY: &str = "batch_size";
 const BTREE_INDEX_VERSION: u32 = 0;
 pub(crate) const BTREE_VALUES_COLUMN: &str = "values";
@@ -1458,8 +1458,10 @@ pub async fn merge_index_files(
     batch_readhead: Option<usize>,
 ) -> Result<()> {
     // List all partition page / lookup files in the index directory
+    println!("***** Retrieving index files...");
     let (part_page_files, part_lookup_files) =
         list_page_lookup_files(object_store, index_dir).await?;
+    println!("***** Merging index files...");
     merge_metadata_files(store, &part_page_files, &part_lookup_files, batch_readhead).await
 }
 
@@ -1581,6 +1583,7 @@ async fn merge_metadata_files(
         .await?;
 
     // Step 4: Merge pages and create lookup entries
+    println!("***** Merging pages...");
     let lookup_entries = merge_pages(
         part_lookup_files,
         &page_files_map,
@@ -1596,6 +1599,7 @@ async fn merge_metadata_files(
 
     // Step 5: Generate new lookup file based on reorganized pages
     // Add batch_size to schema metadata
+    println!("***** Generate lookup files...");
     let mut metadata = HashMap::new();
     metadata.insert(BATCH_SIZE_META_KEY.to_string(), batch_size.to_string());
 
@@ -1628,7 +1632,9 @@ async fn merge_metadata_files(
     let mut lookup_file = store
         .new_index_file(BTREE_LOOKUP_NAME, lookup_schema_with_metadata)
         .await?;
+
     lookup_file.write_record_batch(lookup_batch).await?;
+
     lookup_file.finish().await?;
 
     // After successfully writing the merged files, delete all partition files
@@ -1664,6 +1670,7 @@ async fn merge_pages(
     // Create execution plans for each stream
     let mut inputs: Vec<Arc<dyn ExecutionPlan>> = Vec::new();
     for lookup_file in part_lookup_files {
+        println!("***** Handling file: {}", lookup_file);
         let partition_id = extract_partition_id(lookup_file)?;
         let page_file_name =
             (*page_files_map
@@ -1687,8 +1694,10 @@ async fn merge_pages(
             Box::pin(RecordBatchStreamAdapter::new(stream_schema.clone(), stream));
         inputs.push(Arc::new(OneShotExec::new(sendable_stream)));
     }
+    println!("***** Handling files finished.");
 
     // Create Union execution plan to combine all partitions
+    println!("***** Execution setup...");
     let union_inputs = Arc::new(UnionExec::new(inputs));
 
     // Create SortPreservingMerge execution plan
@@ -1715,10 +1724,12 @@ async fn merge_pages(
     )?;
 
     // Use chunk_concat_stream to ensure fixed batch sizes
+    println!("***** Running sort preserving merge...");
     let mut chunked_stream = chunk_concat_stream(unchunked, batch_size as usize);
 
     // Process chunked stream
     while let Some(batch) = chunked_stream.try_next().await? {
+        println!("***** Processing batch with size {}, page idx {}...", batch_size, page_idx);
         let writer_batch = RecordBatch::try_new(
             arrow_schema.clone(),
             vec![batch.column(0).clone(), batch.column(1).clone()],
@@ -1733,6 +1744,7 @@ async fn merge_pages(
         lookup_entries.push((min_val, max_val, null_count, page_idx));
         page_idx += 1;
     }
+    println!("***** Finished sort preserving merge.");
 
     Ok(lookup_entries)
 }
@@ -1808,6 +1820,7 @@ async fn cleanup_single_file(
     if file_name.starts_with(expected_prefix) && file_name.ends_with(expected_suffix) {
         match store.delete_index_file(file_name).await {
             Ok(()) => {
+                println!("Successfully deleted {} file: {}", file_type, file_name);
                 debug!("Successfully deleted {} file: {}", file_type, file_name);
             }
             Err(e) => {

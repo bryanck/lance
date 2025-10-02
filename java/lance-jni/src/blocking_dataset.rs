@@ -221,6 +221,11 @@ impl BlockingDataset {
         Ok(indexes)
     }
 
+    pub fn prewarm_index(&self, name: &str) -> Result<()> {
+        RT.block_on(self.inner.prewarm_index(name))?;
+        Ok(())
+    }
+
     pub fn commit_transaction(
         &mut self,
         transaction: Transaction,
@@ -1093,6 +1098,22 @@ fn inner_list_indexes<'local>(
     }
 
     Ok(array_list)
+}
+
+#[no_mangle]
+pub extern "system" fn Java_com_lancedb_lance_Dataset_nativePrewarmIndex(
+    mut env: JNIEnv,
+    java_dataset: JObject,
+    jname: JString,
+) {
+    ok_or_throw_without_return!(env, inner_prewarm_index(&mut env, java_dataset, jname))
+}
+
+fn inner_prewarm_index(env: &mut JNIEnv, java_dataset: JObject, jname: JString) -> Result<()> {
+    let name = jname.extract(env)?;
+    let dataset_guard =
+        unsafe { env.get_rust_field::<_, _, BlockingDataset>(java_dataset, NATIVE_DATASET) }?;
+    dataset_guard.prewarm_index(name.as_str())
 }
 
 #[no_mangle]

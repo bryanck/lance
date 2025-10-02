@@ -469,8 +469,11 @@ impl DatasetIndexExt for Dataset {
             });
         }
 
+        let field_id = indices[0].fields[0];
+        let field_path = self.schema().field_path(field_id)?;
+
         let index = self
-            .open_generic_index(name, &indices[0].uuid.to_string(), &NoOpMetricsCollector)
+            .open_generic_index(&field_path, &indices[0].uuid.to_string(), &NoOpMetricsCollector)
             .await?;
         index.prewarm().await?;
 

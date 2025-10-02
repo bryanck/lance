@@ -761,6 +761,16 @@ public class Dataset implements Closeable {
 
   private native List<String> nativeListIndexes();
 
+  /** Prewarm an index. */
+  public void prewarmIndex(String name) {
+    try (LockManager.ReadLock readLock = lockManager.acquireReadLock()) {
+      Preconditions.checkArgument(nativeDatasetHandle != 0, "Dataset is closed");
+      nativePrewarmIndex(name);
+    }
+  }
+
+  private native void nativePrewarmIndex(String name);
+
   /**
    * Get the table config of the dataset.
    *
