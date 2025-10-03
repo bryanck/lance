@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "LLDB: Launch",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/python/.venv/bin/python",
+      "args": ["${file}"],
+      "preLaunchTask": "Build Rust Extension",
+    },
+  ],
+}

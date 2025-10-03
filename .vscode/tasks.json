@@ -1,0 +1,17 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Rust Extension",
+      "type": "shell",
+      "command": "${workspaceFolder}/python/.venv/bin/python -m maturin develop",
+      "options": {
+        "cwd": "${workspaceFolder}/python",
+      },
+      "problemMatcher": [
+        "$rustc"
+      ],
+      "group": "build"
+    }
+  ]
+}
