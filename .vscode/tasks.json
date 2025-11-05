@@ -8,9 +8,7 @@
       "options": {
         "cwd": "${workspaceFolder}/python",
       },
-      "problemMatcher": [
-        "$rustc"
-      ],
+      "problemMatcher": ["$rustc"],
       "group": "build"
     }
   ]

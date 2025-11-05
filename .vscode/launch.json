@@ -2,11 +2,13 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "LLDB: Launch",
+      "name": "Launch Python with PyO3",
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/python/.venv/bin/python",
       "args": ["${file}"],
+      "cwd": "${workspaceFolder}/python",
+      "sourceLanguages": ["rust"],
       "preLaunchTask": "Build Rust Extension",
     },
   ],
