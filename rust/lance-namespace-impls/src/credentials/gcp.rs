@@ -51,9 +51,10 @@ use lance_io::object_store::uri_to_url;
 use lance_namespace::models::Identity;
 use log::{debug, info, warn};
 use reqwest::Client;
+use reqwest::header::AUTHORIZATION;
+use http::{Extensions, HeaderMap};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-
 use super::{redact_credential, CredentialVendor, VendedCredentials, VendedPermission};
 
 /// GCP STS token exchange endpoint for downscoping credentials.
@@ -225,7 +226,7 @@ struct GenerateAccessTokenResponse {
 pub struct GcpCredentialVendor {
     config: GcpCredentialVendorConfig,
     http_client: Client,
-    credential: credentials::Credential,
+    credential: credentials::Credentials,
 }
 
 impl std::fmt::Debug for GcpCredentialVendor {
@@ -246,8 +247,7 @@ impl GcpCredentialVendor {
     ///
     /// [adc]: https://cloud.google.com/docs/authentication/application-default-credentials
     pub async fn new(config: GcpCredentialVendorConfig) -> Result<Self> {
-        let credential = credentials::create_access_token_credential()
-            .await
+        let credential = credentials::Builder::default().build()
             .map_err(|e| Error::IO {
                 source: Box::new(std::io::Error::other(format!(
                     "Failed to create GCP credentials: {}",
@@ -297,22 +297,34 @@ impl GcpCredentialVendor {
     /// using the IAM Credentials API. Otherwise, uses the configured credential
     /// directly.
     async fn get_source_token(&self) -> Result<String> {
-        let base_token = self.credential.get_token().await.map_err(|e| Error::IO {
+        let headers = self.credential.headers(Extensions::new()).await.map_err(|e| Error::IO {
             source: Box::new(std::io::Error::other(format!(
                 "Failed to get GCP token: {}",
                 e
             ))),
             location: snafu::location!(),
         })?;
+        let token = self.get_token_from_headers(headers).unwrap();
 
         // If service account impersonation is configured, use generateAccessToken API
         if let Some(ref service_account) = self.config.service_account {
             return self
-                .impersonate_service_account(&base_token.token, service_account)
+                .impersonate_service_account(&token, service_account)
                 .await;
         }
 
-        Ok(base_token.token)
+        Ok(token)
+    }
+
+    fn get_token_from_headers(&self, headers: credentials::CacheableResource<HeaderMap>) -> Option<String> {
+        match headers {
+            credentials::CacheableResource::New { data, .. } => data
+                .get(AUTHORIZATION)
+                .and_then(|token_value| token_value.to_str().ok())
+                .and_then(|s| s.split_whitespace().nth(1))
+                .map(|s| s.to_string()),
+            credentials::CacheableResource::NotModified => None,
+        }
     }
 
     /// Impersonate a service account using the IAM Credentials API.
