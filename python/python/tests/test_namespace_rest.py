@@ -423,7 +423,7 @@ class TestTableOperations:
             id=["workspace", "test_table"],
             new_namespace_id=["workspace"],
             new_table_name="test_table_renamed",
-            )
+        )
         response = rest_namespace.rename_table(rename_req)
         assert response is not None
 
