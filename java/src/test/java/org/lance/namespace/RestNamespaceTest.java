@@ -339,14 +339,15 @@ public class RestNamespaceTest {
         new CreateTableRequest().id(Arrays.asList("workspace", "test_table"));
     namespace.createTable(createReq, tableData);
 
-    // Rename the table
-    RenameTableRequest renameReq =
-        new RenameTableRequest()
-            .id(Arrays.asList("workspace", "test_table"))
-            .newNamespaceId(Arrays.asList("workspace"))
-            .newTableName("test_table_renamed");
+    // TODO: underlying dir namespace doesn't support rename yet...
 
-    // TODO: underlying dir namespace doesn't support rename yet
+    // // Rename the table
+    // RenameTableRequest renameReq =
+    //     new RenameTableRequest()
+    //         .id(Arrays.asList("workspace", "test_table"))
+    //         .newNamespaceId(Arrays.asList("workspace"))
+    //         .newTableName("test_table_renamed");
+
     // RenameTableResponse renameRes = namespace.renameTable(renameReq);
     // assertNotNull(renameRes);
 

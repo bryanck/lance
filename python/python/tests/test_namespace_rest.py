@@ -29,7 +29,6 @@ from lance_namespace import (
     ListTablesRequest,
     NamespaceExistsRequest,
     RegisterTableRequest,
-    RenameTableRequest,
     TableExistsRequest,
     connect,
 )
@@ -418,14 +417,15 @@ class TestTableOperations:
         create_req = CreateTableRequest(id=["workspace", "test_table"])
         rest_namespace.create_table(create_req, ipc_data)
 
-        # Rename the table
-        rename_req = RenameTableRequest(
-            id=["workspace", "test_table"],
-            new_namespace_id=["workspace"],
-            new_table_name="test_table_renamed",
-        )
+        # TODO: underlying dir namespace doesn't support rename yet...
 
-        # TODO: underlying dir namespace doesn't support rename yet
+        # # Rename the table
+        # rename_req = RenameTableRequest(
+        #     id=["workspace", "test_table"],
+        #     new_namespace_id=["workspace"],
+        #     new_table_name="test_table_renamed",
+        # )
+
         # response = rest_namespace.rename_table(rename_req)
         # assert response is not None
 
