@@ -515,13 +515,19 @@ def test_map_projection_queries(tmp_path: Path):
     # Test 2: Project multiple columns including map
     result2 = dataset.to_table(columns=["id", "properties", "score"])
     assert result2.num_rows == 5, "Row count mismatch for multi-column projection"
-    assert result2.schema.names == ["id", "properties", "score"], (
-        "Schema names mismatch"
-    )
+    assert result2.schema.names == [
+        "id",
+        "properties",
+        "score",
+    ], "Schema names mismatch"
     assert result2["id"].to_pylist() == [1, 2, 3, 4, 5], "ID data mismatch"
-    assert result2["score"].to_pylist() == [95.5, 87.3, 91.2, 78.9, 88.7], (
-        "Score data mismatch"
-    )
+    assert result2["score"].to_pylist() == [
+        95.5,
+        87.3,
+        91.2,
+        78.9,
+        88.7,
+    ], "Score data mismatch"
 
     # Test 3: Project two map columns
     result3 = dataset.to_table(columns=["properties", "tags"])
@@ -534,31 +540,37 @@ def test_map_projection_queries(tmp_path: Path):
 
     # Test 4: Projection with filter
     result4 = dataset.to_table(columns=["id", "name", "properties"], filter="id > 2")
-    assert result4.num_rows == 3, (
-        "Row count mismatch with filter (expected 3 rows for id > 2)"
-    )
-    assert result4.schema.names == ["id", "name", "properties"], (
-        "Schema names mismatch with filter"
-    )
+    assert (
+        result4.num_rows == 3
+    ), "Row count mismatch with filter (expected 3 rows for id > 2)"
+    assert result4.schema.names == [
+        "id",
+        "name",
+        "properties",
+    ], "Schema names mismatch with filter"
     assert result4["id"].to_pylist() == [3, 4, 5], "Filtered ID data mismatch"
-    assert result4["name"].to_pylist() == ["Charlie", "David", "Eve"], (
-        "Filtered name data mismatch"
-    )
+    assert result4["name"].to_pylist() == [
+        "Charlie",
+        "David",
+        "Eve",
+    ], "Filtered name data mismatch"
     # Verify map data is correct for filtered rows
     assert result4["properties"][0].as_py() == [("age", 35)]  # Charlie's properties
     assert result4["properties"][1].as_py() is None  # David's properties (null)
 
     # Test 5: Projection with more complex filter
     result5 = dataset.to_table(columns=["id", "properties"], filter="score >= 90")
-    assert result5.num_rows == 2, (
-        "Row count mismatch with score filter (expected 2 rows)"
-    )
-    assert result5.schema.names == ["id", "properties"], (
-        "Should only contain id and properties columns"
-    )
-    assert result5["id"].to_pylist() == [1, 3], (
-        "Filtered ID data mismatch for score >= 90"
-    )
+    assert (
+        result5.num_rows == 2
+    ), "Row count mismatch with score filter (expected 2 rows)"
+    assert result5.schema.names == [
+        "id",
+        "properties",
+    ], "Should only contain id and properties columns"
+    assert result5["id"].to_pylist() == [
+        1,
+        3,
+    ], "Filtered ID data mismatch for score >= 90"
 
     # Test 6: Project all columns (no projection)
     result6 = dataset.to_table()
@@ -569,12 +581,14 @@ def test_map_projection_queries(tmp_path: Path):
     # Test 7: Project only non-map columns
     result7 = dataset.to_table(columns=["id", "name", "score"])
     assert result7.num_rows == 5, "Row count mismatch for non-map projection"
-    assert result7.schema.names == ["id", "name", "score"], (
-        "Should only contain id, name and score columns"
-    )
-    assert "properties" not in result7.schema.names, (
-        "Map column should not be in result"
-    )
+    assert result7.schema.names == [
+        "id",
+        "name",
+        "score",
+    ], "Should only contain id, name and score columns"
+    assert (
+        "properties" not in result7.schema.names
+    ), "Map column should not be in result"
     assert "tags" not in result7.schema.names, "Map column should not be in result"
     assert result7["name"].to_pylist() == ["Alice", "Bob", "Charlie", "David", "Eve"]
 
@@ -643,9 +657,10 @@ def test_map_projection_nested_struct(tmp_path: Path):
     # Test 3: Project only id and extra (not the struct with map)
     result3 = dataset.to_table(columns=["id", "extra"])
     assert result3.num_rows == 3, "Row count mismatch"
-    assert result3.schema.names == ["id", "extra"], (
-        "Should only contain id and extra columns"
-    )
+    assert result3.schema.names == [
+        "id",
+        "extra",
+    ], "Should only contain id and extra columns"
     assert "user" not in result3.schema.names, "Struct column should not be in result"
     assert result3["extra"].to_pylist() == ["info1", "info2", "info3"]
 
@@ -689,18 +704,21 @@ def test_map_projection_list_of_maps(tmp_path: Path):
     # Test 2: Project with id and configs
     result2 = dataset.to_table(columns=["id", "configs"])
     assert result2.num_rows == 4, "Row count mismatch"
-    assert result2.schema.names == ["id", "configs"], (
-        "Should only contain id and configs columns"
-    )
+    assert result2.schema.names == [
+        "id",
+        "configs",
+    ], "Should only contain id and configs columns"
     assert result2["id"].to_pylist() == [1, 2, 3, 4]
     assert len(result2["configs"][3]) == 3  # Three maps in last list
 
     # Test 3: Projection with filter
     result3 = dataset.to_table(columns=["id", "configs", "name"], filter="id <= 2")
     assert result3.num_rows == 2, "Row count mismatch with filter"
-    assert result3.schema.names == ["id", "configs", "name"], (
-        "Should only contain id, configs and name columns"
-    )
+    assert result3.schema.names == [
+        "id",
+        "configs",
+        "name",
+    ], "Should only contain id, configs and name columns"
     assert result3["name"].to_pylist() == ["service1", "service2"]
     # Verify the list of maps data for filtered rows
     first_configs = result3["configs"][0].as_py()
@@ -767,9 +785,10 @@ def test_map_projection_multiple_value_types(tmp_path: Path):
     # Test 4: Verify data consistency for all projections
     result4 = dataset.to_table(columns=["id", "bool_map"])
     assert result4.num_rows == 3, "Row count mismatch"
-    assert result4.schema.names == ["id", "bool_map"], (
-        "Should only contain id and bool_map columns"
-    )
+    assert result4.schema.names == [
+        "id",
+        "bool_map",
+    ], "Should only contain id and bool_map columns"
     assert result4["bool_map"][0].as_py() == [("flag1", True)]
     assert result4["bool_map"][1].as_py() == [("flag2", False)]
     assert result4["bool_map"][2].as_py() == [("flag3", True), ("flag4", False)]
