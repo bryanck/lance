@@ -26,7 +26,9 @@ import org.apache.arrow.c.Data;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.ipc.ArrowReader;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -130,6 +132,46 @@ public class Fragment {
   public int countRows() {
     return countRowsNative(dataset, fragmentMetadata.getId());
   }
+
+  /**
+   * Read a contiguous range of logical rows from this fragment.
+   *
+   * <p>Logical rows skip deleted rows, so row 0 is the first non-deleted row. Data is streamed
+   * batch-by-batch rather than materialized fully in memory.
+   *
+   * @param offset the starting logical row index (0-based)
+   * @param numRows the number of rows to read
+   * @param columns the columns to read (empty list for all columns)
+   * @param batchSize the maximum number of rows per batch
+   * @return an ArrowReader that streams the requested rows
+   */
+  public ArrowReader readRange(int offset, int numRows, List<String> columns, int batchSize)
+      throws IOException {
+    Preconditions.checkArgument(offset >= 0, "offset must be non-negative");
+    Preconditions.checkArgument(numRows > 0, "numRows must be positive");
+    Preconditions.checkArgument(batchSize > 0, "batchSize must be positive");
+    BufferAllocator allocator = dataset.allocator();
+    try (ArrowArrayStream stream = ArrowArrayStream.allocateNew(allocator)) {
+      nativeReadRange(
+          dataset,
+          fragmentMetadata.getId(),
+          offset,
+          numRows,
+          columns,
+          batchSize,
+          stream.memoryAddress());
+      return Data.importArrayStream(allocator, stream);
+    }
+  }
+
+  private native void nativeReadRange(
+      Dataset dataset,
+      int fragmentId,
+      int offset,
+      int numRows,
+      List<String> columns,
+      int batchSize,
+      long streamAddress);
 
   /**
    * Merge the new columns into this Fragment, will return the new fragment with the same

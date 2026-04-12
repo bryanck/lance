@@ -20,6 +20,7 @@ import org.lance.operation.Merge;
 import org.lance.operation.Update;
 
 import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.UInt8Vector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -340,6 +341,70 @@ public class FragmentTest {
               }
             }
           }
+        }
+      }
+    }
+  }
+
+  @Test
+  void testReadRange(@TempDir Path tempDir) throws Exception {
+    String datasetPath = tempDir.resolve("testReadRange").toString();
+    try (RootAllocator allocator = new RootAllocator(Long.MAX_VALUE)) {
+      TestUtils.SimpleTestDataset testDataset =
+          new TestUtils.SimpleTestDataset(allocator, datasetPath);
+      testDataset.createEmptyDataset().close();
+      int rowCount = 50;
+      FragmentMetadata fragmentMeta = testDataset.createNewFragment(rowCount);
+      FragmentOperation.Append appendOp = new FragmentOperation.Append(Arrays.asList(fragmentMeta));
+      try (Dataset dataset = Dataset.commit(allocator, datasetPath, appendOp, Optional.of(1L))) {
+        Fragment fragment = dataset.getFragments().get(0);
+
+        // Read a range of rows from the middle
+        try (ArrowReader reader = fragment.readRange(10, 20, Collections.emptyList(), 1024)) {
+          int totalRead = 0;
+          int batchCount = 0;
+          while (reader.loadNextBatch()) {
+            VectorSchemaRoot root = reader.getVectorSchemaRoot();
+            IntVector idVector = (IntVector) root.getVector("id");
+            for (int i = 0; i < root.getRowCount(); i++) {
+              assertEquals(10 + totalRead + i, idVector.get(i));
+            }
+            totalRead += root.getRowCount();
+            batchCount++;
+          }
+          assertEquals(20, totalRead);
+          assertTrue(batchCount == 1);
+        }
+
+        // Read with specific columns
+        try (ArrowReader reader = fragment.readRange(0, 5, Collections.singletonList("id"), 1024)) {
+          int totalRead = 0;
+          int batchCount = 0;
+          while (reader.loadNextBatch()) {
+            VectorSchemaRoot root = reader.getVectorSchemaRoot();
+            assertEquals(1, root.getSchema().getFields().size());
+            assertEquals("id", root.getSchema().getFields().get(0).getName());
+            IntVector idVector = (IntVector) root.getVector("id");
+            for (int i = 0; i < root.getRowCount(); i++) {
+              assertEquals(totalRead + i, idVector.get(i));
+            }
+            totalRead += root.getRowCount();
+            batchCount++;
+          }
+          assertEquals(5, totalRead);
+          assertTrue(batchCount == 1);
+        }
+
+        // Read with custom batch size
+        try (ArrowReader reader = fragment.readRange(0, 10, Collections.emptyList(), 3)) {
+          int totalRead = 0;
+          int batchCount = 0;
+          while (reader.loadNextBatch()) {
+            totalRead += reader.getVectorSchemaRoot().getRowCount();
+            batchCount++;
+          }
+          assertEquals(10, totalRead);
+          assertTrue(batchCount > 1);
         }
       }
     }

@@ -3794,6 +3794,7 @@ dependencies = [
  "chrono",
  "datafusion-common",
  "env_logger",
+ "futures",
  "jni",
  "lance",
  "lance-core",

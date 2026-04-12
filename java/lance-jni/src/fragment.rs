@@ -5,6 +5,7 @@ use arrow::array::{RecordBatch, RecordBatchIterator, StructArray};
 use arrow::ffi::{FFI_ArrowArray, FFI_ArrowSchema, from_ffi_and_data_type};
 use arrow::ffi_stream::{ArrowArrayStreamReader, FFI_ArrowArrayStream};
 use arrow_schema::DataType;
+use futures::StreamExt;
 use jni::objects::{JIntArray, JValue, JValueGen};
 use jni::{
     JNIEnv,
@@ -16,10 +17,13 @@ use lance::table::format::{DataFile, DeletionFile, DeletionFileType, Fragment, R
 use lance_io::utils::CachedFileSize;
 use std::iter::once;
 
-use lance::dataset::fragment::FileFragment;
+use lance::dataset::fragment::{FileFragment, FragReadConfig};
 use lance::io::ObjectStoreParams;
+use lance_core::utils::tokio::get_num_compute_intensive_cpus;
 use lance_datafusion::utils::StreamingWriteSource;
+use lance_io::ffi::to_ffi_arrow_array_stream;
 use lance_io::object_store::{LanceNamespaceStorageOptionsProvider, StorageOptionsProvider};
+use lance_io::stream::RecordBatchStreamAdapter;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -77,6 +81,79 @@ fn inner_count_rows_native(
     };
     let res = RT.block_on(fragment.count_rows(None))?;
     Ok(res)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_org_lance_Fragment_nativeReadRange(
+    mut env: JNIEnv,
+    _jfragment: JObject,
+    jdataset: JObject,
+    fragment_id: jint,
+    offset: jint,
+    num_rows: jint,
+    columns_obj: JObject, // List<String>
+    batch_size: jint,
+    stream_addr: jlong,
+) {
+    ok_or_throw_without_return!(
+        env,
+        inner_read_range(
+            &mut env,
+            jdataset,
+            fragment_id,
+            offset,
+            num_rows,
+            columns_obj,
+            batch_size,
+            stream_addr,
+        )
+    )
+}
+
+fn inner_read_range(
+    env: &mut JNIEnv,
+    jdataset: JObject,
+    fragment_id: jint,
+    offset: jint,
+    num_rows: jint,
+    columns_obj: JObject, // List<String>
+    batch_size: jint,
+    stream_addr: jlong,
+) -> Result<()> {
+    let columns: Vec<String> = env.get_strings(&columns_obj)?;
+
+    let (fragment, projection) = {
+        let dataset =
+            unsafe { env.get_rust_field::<_, _, BlockingDataset>(jdataset, NATIVE_DATASET) }?;
+
+        let projection = if columns.is_empty() {
+            dataset.inner.schema().clone()
+        } else {
+            dataset.inner.schema().project(&columns)?
+        };
+
+        let Some(fragment) = dataset.inner.get_fragment(fragment_id as usize) else {
+            return Err(Error::input_error(format!(
+                "Fragment not found: {fragment_id}"
+            )));
+        };
+        (fragment, projection)
+    };
+
+    let (arrow_schema, batch_stream) = RT.block_on(async {
+        let reader = fragment.open(&projection, FragReadConfig::default()).await?;
+        let schema = Arc::new(arrow_schema::Schema::from(&projection));
+        let range = offset as u32..(offset + num_rows) as u32;
+        let fut_stream = reader.read_range(range, batch_size as u32)?;
+        let batch_stream = fut_stream
+            .buffered(get_num_compute_intensive_cpus());
+        Ok::<_, Error>((schema, batch_stream))
+    })?;
+
+    let record_batch_stream = RecordBatchStreamAdapter::new(arrow_schema, batch_stream);
+    let ffi_stream = to_ffi_arrow_array_stream(record_batch_stream, RT.handle().clone())?;
+    unsafe { std::ptr::write_unaligned(stream_addr as *mut FFI_ArrowArrayStream, ffi_stream) }
+    Ok(())
 }
 
 ///////////////////
