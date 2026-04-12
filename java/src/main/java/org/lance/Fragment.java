@@ -26,7 +26,12 @@ import org.apache.arrow.c.Data;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.ipc.ArrowReader;
+import org.apache.arrow.vector.ipc.ArrowStreamReader;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.channels.Channels;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -130,6 +135,45 @@ public class Fragment {
   public int countRows() {
     return countRowsNative(dataset, fragmentMetadata.getId());
   }
+
+  /**
+   * Read a contiguous range of rows from this fragment by logical row index.
+   *
+   * <p>Indices match Python {@code LanceFragment.take}: positions within this fragment after
+   * applying the deletion vector (0 through {@link #countRows()} - 1 inclusive). This uses {@code
+   * FileFragment::take} in Rust and does not use scanner limit/offset, so it avoids a dataset-wide
+   * row count while still opening the fragment reader (which may perform a per-fragment row count).
+   *
+   * @param offset first logical row index in this fragment (inclusive)
+   * @param numRows number of rows to read
+   * @param columns column names to project, or null or empty to read all columns
+   * @return an Arrow stream reader over a single IPC-encoded record batch
+   */
+  public ArrowReader readRows(long offset, long numRows, List<String> columns) throws IOException {
+    Preconditions.checkArgument(!dataset.closed(), "Dataset is closed");
+    Preconditions.checkArgument(offset >= 0, "offset must be non-negative");
+    Preconditions.checkArgument(numRows > 0, "numRows must be positive");
+    long endExclusive;
+    try {
+      endExclusive = Math.addExact(offset, numRows);
+    } catch (ArithmeticException e) {
+      throw new IllegalArgumentException("offset + numRows overflows", e);
+    }
+    Preconditions.checkArgument(
+        endExclusive <= (1L << 32), "row range exceeds addressable fragment row index space");
+    byte[] arrowData = nativeReadRows(dataset, fragmentMetadata.getId(), offset, numRows, columns);
+    ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(arrowData);
+    return new ArrowStreamReader(Channels.newChannel(byteArrayInputStream), dataset.allocator()) {
+      @Override
+      public void close() throws IOException {
+        super.close();
+        byteArrayInputStream.close();
+      }
+    };
+  }
+
+  private native byte[] nativeReadRows(
+      Dataset dataset, int fragmentId, long offset, long numRows, List<String> columns);
 
   /**
    * Merge the new columns into this Fragment, will return the new fragment with the same

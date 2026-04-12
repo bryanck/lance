@@ -9,13 +9,15 @@ use jni::objects::{JIntArray, JValue, JValueGen};
 use jni::{
     JNIEnv,
     objects::{JObject, JString},
-    sys::{jint, jlong},
+    sys::{jbyteArray, jint, jlong},
 };
 use lance::datatypes::Schema;
 use lance::table::format::{DataFile, DeletionFile, DeletionFileType, Fragment, RowIdMeta};
 use lance_io::utils::CachedFileSize;
 use std::iter::once;
 
+use arrow::ipc::writer::StreamWriter;
+use lance::dataset::ProjectionRequest;
 use lance::dataset::fragment::FileFragment;
 use lance::io::ObjectStoreParams;
 use lance_datafusion::utils::StreamingWriteSource;
@@ -77,6 +79,113 @@ fn inner_count_rows_native(
     };
     let res = RT.block_on(fragment.count_rows(None))?;
     Ok(res)
+}
+
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_org_lance_Fragment_nativeReadRows(
+    mut env: JNIEnv,
+    _jfragment: JObject,
+    jdataset: JObject,
+    fragment_id: jint,
+    offset: jlong,
+    num_rows: jlong,
+    columns_obj: JObject,
+) -> jbyteArray {
+    match inner_read_rows(
+        &mut env,
+        jdataset,
+        fragment_id,
+        offset,
+        num_rows,
+        columns_obj,
+    ) {
+        Ok(byte_array) => byte_array,
+        Err(e) => {
+            let _ = env.throw_new("java/lang/RuntimeException", format!("{:?}", e));
+            std::ptr::null_mut()
+        }
+    }
+}
+
+fn inner_read_rows(
+    env: &mut JNIEnv,
+    jdataset: JObject,
+    fragment_id: jint,
+    offset: jlong,
+    num_rows: jlong,
+    columns_obj: JObject,
+) -> Result<jbyteArray> {
+    if offset < 0 {
+        return Err(Error::input_error("offset must be non-negative".to_string()));
+    }
+    if num_rows <= 0 {
+        return Err(Error::input_error("numRows must be positive".to_string()));
+    }
+    let num_rows_usize: usize = num_rows
+        .try_into()
+        .map_err(|_| Error::input_error("numRows does not fit in usize".to_string()))?;
+    let offset_u64: u64 = offset
+        .try_into()
+        .map_err(|_| Error::input_error("offset does not fit in u64".to_string()))?;
+    let num_rows_u64 = num_rows_usize as u64;
+    let end_exclusive = offset_u64.checked_add(num_rows_u64).ok_or_else(|| {
+        Error::input_error("offset + numRows overflows u64".to_string())
+    })?;
+    if end_exclusive > (1u64 << 32) {
+        return Err(Error::input_error(
+            "row range exceeds addressable fragment row index space".to_string(),
+        ));
+    }
+
+    let columns_vec: Vec<String> = if columns_obj.is_null() {
+        Vec::new()
+    } else {
+        env.get_strings(&columns_obj)?
+    };
+
+    // Logical row indices within the fragment: [offset, offset + numRows), same as Python
+    // `take(range(offset, offset + num_rows)))`. Bounds above ensure every value fits in u32.
+    let indices: Vec<u32> = (offset_u64..end_exclusive).map(|v| v as u32).collect();
+
+    let (fragment, projection_schema) = {
+        let dataset_guard =
+            unsafe { env.get_rust_field::<_, _, BlockingDataset>(jdataset, NATIVE_DATASET) }?;
+        let dataset = &dataset_guard.inner;
+
+        let Some(fragment) = dataset.get_fragment(fragment_id as usize) else {
+            return Err(Error::input_error(format!(
+                "Fragment not found: {fragment_id}"
+            )));
+        };
+
+        let projection_schema = if columns_vec.is_empty() {
+            Arc::new(dataset.schema().clone())
+        } else {
+            match ProjectionRequest::from_columns(&columns_vec, dataset.schema()) {
+                ProjectionRequest::Schema(s) => s,
+                ProjectionRequest::Sql(_) => {
+                    return Err(Error::input_error(
+                        "readRows only supports plain column projections".to_string(),
+                    ));
+                }
+            }
+        };
+
+        (fragment.clone(), projection_schema)
+    };
+
+    let batch =
+        RT.block_on(fragment.take(&indices, projection_schema.as_ref()))?;
+
+    let mut buffer = Vec::new();
+    {
+        let mut writer = StreamWriter::try_new(&mut buffer, batch.schema().as_ref())?;
+        writer.write(&batch)?;
+        writer.finish()?;
+    }
+
+    let byte_array = env.byte_array_from_slice(&buffer)?;
+    Ok(**byte_array)
 }
 
 ///////////////////

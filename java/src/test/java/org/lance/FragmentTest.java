@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -76,6 +77,22 @@ public class FragmentTest {
         try (LanceScanner scanner = fragment.newScan()) {
           Schema schemaRes = scanner.schema();
           assertEquals(testDataset.getSchema(), schemaRes);
+        }
+
+        try (ArrowReader reader = fragment.readRows(5, 3, Arrays.asList("id", "name"))) {
+          assertTrue(reader.loadNextBatch());
+          VectorSchemaRoot root = reader.getVectorSchemaRoot();
+          assertEquals(3, root.getRowCount());
+          assertEquals(5, root.getVector("id").getObject(0));
+          assertEquals(7, root.getVector("id").getObject(2));
+          assertFalse(reader.loadNextBatch());
+        }
+
+        try (ArrowReader readerAll = fragment.readRows(0, 3, null)) {
+          assertTrue(readerAll.loadNextBatch());
+          VectorSchemaRoot root = readerAll.getVectorSchemaRoot();
+          assertEquals(3, root.getRowCount());
+          assertEquals(0, root.getVector("id").getObject(0));
         }
       }
     }
