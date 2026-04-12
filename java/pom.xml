@@ -38,7 +38,7 @@
         <!-- Please also update .scalafmt.conf when you change it here -->
         <spotless.scala.scalafmt.version>3.7.5</spotless.scala.scalafmt.version>
         <spotless.delimiter>package</spotless.delimiter>
-        <rust.release.build>false</rust.release.build>
+        <rust.release.build>true</rust.release.build>
         <skip.build.jni>false</skip.build.jni>
         <shade.base>org.lance.shaded</shade.base>
         <spotless.license.header>
