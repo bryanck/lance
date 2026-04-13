@@ -110,6 +110,7 @@ pub extern "system" fn Java_org_lance_Fragment_nativeReadRange(
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn inner_read_range(
     env: &mut JNIEnv,
     jdataset: JObject,
