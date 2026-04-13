@@ -367,21 +367,21 @@ pub extern "system" fn Java_org_lance_ipc_LanceScanner_createScanner<'local>(
     mut env: JNIEnv<'local>,
     _reader: JObject<'local>,
     jdataset: JObject<'local>,
-    fragment_ids_obj: JObject<'local>, // Optional<List<Long>>
-    columns_obj: JObject<'local>,      // Optional<List<String>>
+    fragment_ids_obj: JObject<'local>,     // Optional<List<Long>>
+    columns_obj: JObject<'local>,          // Optional<List<String>>
     substrait_filter_obj: JObject<'local>, // Optional<ByteBuffer>
-    filter_obj: JObject<'local>,       // Optional<String>
-    batch_size_obj: JObject<'local>,   // Optional<Long>
-    limit_obj: JObject<'local>,        // Optional<Integer>
-    offset_obj: JObject<'local>,       // Optional<Integer>
-    query_obj: JObject<'local>,        // Optional<Query>
-    fts_query_obj: JObject<'local>,    // Optional<FullTextQuery>
-    prefilter: jboolean,               // boolean
-    with_row_id: jboolean,             // boolean
-    with_row_address: jboolean,        // boolean
-    batch_readahead: jint,             // int
-    column_orderings: JObject<'local>, // Optional<List<ColumnOrdering>>
-    use_scalar_index: jboolean,        // boolean
+    filter_obj: JObject<'local>,           // Optional<String>
+    batch_size_obj: JObject<'local>,       // Optional<Long>
+    limit_obj: JObject<'local>,            // Optional<Integer>
+    offset_obj: JObject<'local>,           // Optional<Integer>
+    query_obj: JObject<'local>,            // Optional<Query>
+    fts_query_obj: JObject<'local>,        // Optional<FullTextQuery>
+    prefilter: jboolean,                   // boolean
+    with_row_id: jboolean,                 // boolean
+    with_row_address: jboolean,            // boolean
+    batch_readahead: jint,                 // int
+    column_orderings: JObject<'local>,     // Optional<List<ColumnOrdering>>
+    use_scalar_index: jboolean,            // boolean
     substrait_aggregate_obj: JObject<'local>, // Optional<ByteBuffer>
 ) -> JObject<'local> {
     ok_or_throw!(
