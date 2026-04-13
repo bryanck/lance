@@ -141,12 +141,13 @@ fn inner_read_range(
     };
 
     let (arrow_schema, batch_stream) = RT.block_on(async {
-        let reader = fragment.open(&projection, FragReadConfig::default()).await?;
+        let reader = fragment
+            .open(&projection, FragReadConfig::default())
+            .await?;
         let schema = Arc::new(arrow_schema::Schema::from(&projection));
         let range = offset as u32..(offset + num_rows) as u32;
         let fut_stream = reader.read_range(range, batch_size as u32)?;
-        let batch_stream = fut_stream
-            .buffered(get_num_compute_intensive_cpus());
+        let batch_stream = fut_stream.buffered(get_num_compute_intensive_cpus());
         Ok::<_, Error>((schema, batch_stream))
     })?;
 
