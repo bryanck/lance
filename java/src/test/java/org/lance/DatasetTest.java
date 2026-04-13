@@ -1266,7 +1266,7 @@ public class DatasetTest {
                       .withRowId(true)
                       // load data in one batch
                       .batchSize(20)
-                      .fragmentIds(Arrays.asList(0, 1))
+                      .fragmentIds(Arrays.asList(0L, 1L))
                       .build());
 
           try (ArrowReader reader = scanner.scanBatches()) {
@@ -1809,8 +1809,8 @@ public class DatasetTest {
                   .findFirst()
                   .orElse(null);
           assertNotNull(idIndexBefore);
-          List<Integer> beforeFragments = idIndexBefore.fragments().orElse(Collections.emptyList());
-          assertTrue(beforeFragments.contains(0));
+          List<Long> beforeFragments = idIndexBefore.fragments().orElse(Collections.emptyList());
+          assertTrue(beforeFragments.contains(0L));
           assertEquals(1, beforeFragments.size());
         }
 
@@ -1826,10 +1826,10 @@ public class DatasetTest {
                   .findFirst()
                   .orElse(null);
           assertNotNull(idIndexAfter);
-          List<Integer> afterFragments = idIndexAfter.fragments().orElse(Collections.emptyList());
+          List<Long> afterFragments = idIndexAfter.fragments().orElse(Collections.emptyList());
 
-          assertTrue(afterFragments.contains(0));
-          assertTrue(afterFragments.contains(1));
+          assertTrue(afterFragments.contains(0L));
+          assertTrue(afterFragments.contains(1L));
           assertEquals(2, afterFragments.size());
         }
       }

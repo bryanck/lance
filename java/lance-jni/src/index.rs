@@ -77,7 +77,7 @@ impl IntoJava for &IndexMetadata {
             let array_list = env.new_object("java/util/ArrayList", "()V", &[])?;
             for frag_id in bitmap.iter() {
                 let id_obj =
-                    env.new_object("java/lang/Integer", "(I)V", &[JValue::Int(frag_id as i32)])?;
+                    env.new_object("java/lang/Long", "(J)V", &[JValue::Long(frag_id as i64)])?;
                 env.call_method(
                     &array_list,
                     "add",

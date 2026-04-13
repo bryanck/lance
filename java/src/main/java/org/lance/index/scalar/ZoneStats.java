@@ -31,7 +31,7 @@ import java.io.Serializable;
 public class ZoneStats implements Serializable {
   private static final long serialVersionUID = 1L;
 
-  private final int fragmentId;
+  private final long fragmentId;
   private final long zoneStart;
   private final long zoneLength;
   private final Comparable<?> min;
@@ -50,7 +50,7 @@ public class ZoneStats implements Serializable {
    * @param nullCount the number of null values in the zone
    */
   public ZoneStats(
-      int fragmentId,
+      long fragmentId,
       long zoneStart,
       long zoneLength,
       Comparable<?> min,
@@ -65,7 +65,7 @@ public class ZoneStats implements Serializable {
   }
 
   /** Returns the fragment ID this zone belongs to. */
-  public int getFragmentId() {
+  public long getFragmentId() {
     return fragmentId;
   }
 

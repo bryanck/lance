@@ -26,14 +26,14 @@ import java.util.Objects;
 /** Metadata of a Fragment in the dataset. Matching to lance Fragment. */
 public class FragmentMetadata implements Serializable {
   private static final long serialVersionUID = -5886811251944130460L;
-  private final int id;
+  private final long id;
   private final List<DataFile> files;
   private final long physicalRows;
   private final DeletionFile deletionFile;
   private final RowIdMeta rowIdMeta;
 
   public FragmentMetadata(
-      int id,
+      long id,
       List<DataFile> files,
       Long physicalRows,
       DeletionFile deletionFile,
@@ -45,7 +45,7 @@ public class FragmentMetadata implements Serializable {
     this.rowIdMeta = rowIdMeta;
   }
 
-  public int getId() {
+  public long getId() {
     return id;
   }
 

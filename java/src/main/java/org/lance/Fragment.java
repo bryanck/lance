@@ -43,7 +43,7 @@ public class Fragment {
 
   private final FragmentMetadata fragmentMetadata;
 
-  public Fragment(Dataset dataset, int fragmentId) {
+  public Fragment(Dataset dataset, long fragmentId) {
     Preconditions.checkNotNull(dataset);
     this.dataset = dataset;
     this.fragmentMetadata = dataset.getFragment(fragmentId).fragmentMetadata;
@@ -116,11 +116,11 @@ public class Fragment {
   }
 
   private static native FragmentMetadata nativeDeleteRows(
-      Dataset dataset, int fragmentId, List<Integer> rowIndexes);
+      Dataset dataset, long fragmentId, List<Integer> rowIndexes);
 
   private native int countRowsNative(Dataset dataset, long fragmentId);
 
-  public int getId() {
+  public long getId() {
     return fragmentMetadata.getId();
   }
 

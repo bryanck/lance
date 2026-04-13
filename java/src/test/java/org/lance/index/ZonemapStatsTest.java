@@ -206,7 +206,7 @@ public class ZonemapStatsTest {
         assertNotNull(stats);
         assertFalse(stats.isEmpty());
 
-        Set<Integer> fragmentIds = new HashSet<>();
+        Set<Long> fragmentIds = new HashSet<>();
         for (ZoneStats z : stats) {
           fragmentIds.add(z.getFragmentId());
         }

@@ -245,7 +245,7 @@ public class VectorSearchTest {
         if (createVectorIndex) {
           testVectorDataset.createIndex(dataset);
         }
-        List<Integer> fragmentIds = new ArrayList<>(Arrays.asList(3, 4));
+        List<Long> fragmentIds = new ArrayList<>(Arrays.asList(3L, 4L));
         float[] key = new float[32];
         for (int i = 0; i < 32; i++) {
           key[i] = (float) (i + 32);
@@ -307,7 +307,7 @@ public class VectorSearchTest {
       try (Dataset dataset = testVectorDataset.create()) {
         testVectorDataset.createIndex(dataset);
       }
-      List<Integer> fragmentIds = new ArrayList<>(Arrays.asList(3, 4));
+      List<Long> fragmentIds = new ArrayList<>(Arrays.asList(3L, 4L));
       float[] key = new float[32];
       for (int i = 0; i < 32; i++) {
         key[i] = (float) (i + 32);

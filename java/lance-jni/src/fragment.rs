@@ -315,7 +315,7 @@ pub extern "system" fn Java_org_lance_Fragment_nativeDeleteRows<'a>(
     mut env: JNIEnv<'a>,
     _obj: JObject,
     jdataset: JObject,
-    fragment_id: jint,
+    fragment_id: jlong,
     row_indexes: JObject, // List<Integer>
 ) -> JObject<'a> {
     ok_or_throw!(
@@ -327,7 +327,7 @@ pub extern "system" fn Java_org_lance_Fragment_nativeDeleteRows<'a>(
 fn inner_delete_rows<'local>(
     env: &mut JNIEnv<'local>,
     jdataset: JObject,
-    fragment_id: jint,
+    fragment_id: jlong,
     row_indexes: JObject, // List<Integer>
 ) -> Result<JObject<'local>> {
     let fragment_id = fragment_id as usize;
@@ -494,7 +494,7 @@ const DELETE_FILE_CONSTRUCTOR_SIG: &str =
     "(JJLjava/lang/Long;Lorg/lance/fragment/DeletionFileType;Ljava/lang/Integer;)V";
 const DELETE_FILE_TYPE_CLASS: &str = "org/lance/fragment/DeletionFileType";
 const FRAGMENT_METADATA_CLASS: &str = "org/lance/FragmentMetadata";
-const FRAGMENT_METADATA_CONSTRUCTOR_SIG: &str = "(ILjava/util/List;Ljava/lang/Long;Lorg/lance/fragment/DeletionFile;Lorg/lance/fragment/RowIdMeta;)V";
+const FRAGMENT_METADATA_CONSTRUCTOR_SIG: &str = "(JLjava/util/List;Ljava/lang/Long;Lorg/lance/fragment/DeletionFile;Lorg/lance/fragment/RowIdMeta;)V";
 const ROW_ID_META_CLASS: &str = "org/lance/fragment/RowIdMeta";
 const ROW_ID_META_CONSTRUCTOR_SIG: &str = "(Ljava/lang/String;)V";
 const FRAGMENT_MERGE_RESULT_CLASS: &str = "org/lance/fragment/FragmentMergeResult";
@@ -629,7 +629,7 @@ impl IntoJava for &Fragment {
             FRAGMENT_METADATA_CLASS,
             FRAGMENT_METADATA_CONSTRUCTOR_SIG,
             &[
-                JValueGen::Int(self.id as i32),
+                JValueGen::Long(self.id as i64),
                 JValueGen::Object(&files),
                 JValueGen::Object(physical_rows),
                 JValueGen::Object(&deletion_file),
@@ -655,7 +655,7 @@ impl FromJObjectWithEnv<RowIdMeta> for JObject<'_> {
 
 impl FromJObjectWithEnv<Fragment> for JObject<'_> {
     fn extract_object(&self, env: &mut JNIEnv<'_>) -> Result<Fragment> {
-        let id = env.call_method(self, "getId", "()I", &[])?.i()? as u64;
+        let id = env.call_method(self, "getId", "()J", &[])?.j()? as u64;
         let file_objs = env
             .call_method(self, "getFiles", "()Ljava/util/List;", &[])?
             .l()?;

@@ -231,7 +231,7 @@ pub(crate) fn build_scanner_with_options<'a>(
     let mut scanner = dataset.scan();
 
     // handle fragment_ids
-    let fragment_ids_opt = env.get_ints_opt(&options.fragment_ids_obj)?;
+    let fragment_ids_opt = env.get_longs_opt(&options.fragment_ids_obj)?;
     if let Some(fragment_ids) = fragment_ids_opt {
         let mut fragments = Vec::with_capacity(fragment_ids.len());
         for fragment_id in fragment_ids {
@@ -367,7 +367,7 @@ pub extern "system" fn Java_org_lance_ipc_LanceScanner_createScanner<'local>(
     mut env: JNIEnv<'local>,
     _reader: JObject<'local>,
     jdataset: JObject<'local>,
-    fragment_ids_obj: JObject<'local>, // Optional<List<Integer>>
+    fragment_ids_obj: JObject<'local>, // Optional<List<Long>>
     columns_obj: JObject<'local>,      // Optional<List<String>>
     substrait_filter_obj: JObject<'local>, // Optional<ByteBuffer>
     filter_obj: JObject<'local>,       // Optional<String>

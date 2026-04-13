@@ -31,7 +31,7 @@ public class Index {
   private final List<Integer> fields;
   private final String name;
   private final long datasetVersion;
-  private final List<Integer> fragments;
+  private final List<Long> fragments;
   private final byte[] indexDetails;
   private final int indexVersion;
   private final Instant createdAt;
@@ -43,7 +43,7 @@ public class Index {
       List<Integer> fields,
       String name,
       long datasetVersion,
-      List<Integer> fragments,
+      List<Long> fragments,
       byte[] indexDetails,
       int indexVersion,
       Instant createdAt,
@@ -92,7 +92,7 @@ public class Index {
     return datasetVersion;
   }
 
-  public Optional<List<Integer>> fragments() {
+  public Optional<List<Long>> fragments() {
     return Optional.ofNullable(fragments);
   }
 
@@ -194,7 +194,7 @@ public class Index {
     private List<Integer> fields;
     private String name;
     private long datasetVersion;
-    private List<Integer> fragments;
+    private List<Long> fragments;
     private byte[] indexDetails;
     private int indexVersion;
     private Instant createdAt;
@@ -223,7 +223,7 @@ public class Index {
       return this;
     }
 
-    public Builder fragments(List<Integer> fragments) {
+    public Builder fragments(List<Long> fragments) {
       this.fragments = fragments;
       return this;
     }

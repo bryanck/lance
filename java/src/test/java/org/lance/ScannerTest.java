@@ -622,7 +622,7 @@ public class ScannerTest {
     }
   }
 
-  private void validScanResult(Dataset dataset, int fragmentId, int rowCount) throws Exception {
+  private void validScanResult(Dataset dataset, long fragmentId, int rowCount) throws Exception {
     try (Scanner scanner =
         dataset.newScan(
             new ScanOptions.Builder()

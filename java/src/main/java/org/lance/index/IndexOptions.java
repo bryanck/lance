@@ -23,7 +23,7 @@ import java.util.Optional;
 public class IndexOptions {
   private final boolean replace;
   private final boolean train;
-  private final List<Integer> fragmentIds;
+  private final List<Long> fragmentIds;
   private final String indexUUID;
   private final String indexName;
   private final List<String> columns;
@@ -38,7 +38,7 @@ public class IndexOptions {
       IndexParams indexParams,
       boolean replace,
       boolean train,
-      List<Integer> fragmentIds,
+      List<Long> fragmentIds,
       String indexUUID,
       ArrowArrayStream preprocessedData) {
     this.replace = replace;
@@ -56,7 +56,7 @@ public class IndexOptions {
     return Optional.ofNullable(indexUUID);
   }
 
-  public Optional<List<Integer>> getFragmentIds() {
+  public Optional<List<Long>> getFragmentIds() {
     return Optional.ofNullable(fragmentIds);
   }
 
@@ -97,7 +97,7 @@ public class IndexOptions {
   public static class Builder {
     private boolean replace = false;
     private boolean train = true;
-    private List<Integer> fragmentIds = null;
+    private List<Long> fragmentIds = null;
     private String indexUUID = null;
     private String indexName = null;
     private ArrowArrayStream preprocessedData = null;
@@ -140,7 +140,7 @@ public class IndexOptions {
      *
      * @param fragmentIds fragmentIds option
      */
-    public Builder withFragmentIds(List<Integer> fragmentIds) {
+    public Builder withFragmentIds(List<Long> fragmentIds) {
       this.fragmentIds = fragmentIds;
       return this;
     }

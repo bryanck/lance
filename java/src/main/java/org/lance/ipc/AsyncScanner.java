@@ -86,7 +86,7 @@ public class AsyncScanner implements AutoCloseable {
 
   static native AsyncScanner createAsyncScanner(
       Dataset dataset,
-      Optional<List<Integer>> fragmentIds,
+      Optional<List<Long>> fragmentIds,
       Optional<List<String>> columns,
       Optional<ByteBuffer> substraitFilter,
       Optional<String> filter,

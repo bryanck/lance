@@ -856,7 +856,7 @@ pub extern "system" fn Java_org_lance_Dataset_nativeCreateIndex<'local>(
     params_jobj: JObject<'local>,            // IndexParams
     replace_jobj: jboolean,                  // replace
     train_jobj: jboolean,                    // train
-    fragments_jobj: JObject<'local>,         // List<Integer>
+    fragments_jobj: JObject<'local>,         // Optional<List<Long>>
     index_uuid_jobj: JObject<'local>,        // String
     arrow_stream_addr_jobj: JObject<'local>, // Optional<Long>
 ) -> JObject<'local> {
@@ -888,7 +888,7 @@ fn inner_create_index<'local>(
     params_jobj: JObject<'local>,            // IndexParams
     replace_jobj: jboolean,                  // replace
     train_jobj: jboolean,                    // train
-    fragments_jobj: JObject<'local>,         // Optional<List<String>>
+    fragments_jobj: JObject<'local>,         // Optional<List<Long>>
     index_uuid_jobj: JObject<'local>,        // Optional<String>
     arrow_stream_addr_jobj: JObject<'local>, // Optional<Long>
 ) -> Result<JObject<'local>> {
@@ -899,7 +899,7 @@ fn inner_create_index<'local>(
     let replace = replace_jobj != 0;
     let train = train_jobj != 0;
     let fragment_ids = env
-        .get_ints_opt(&fragments_jobj)?
+        .get_longs_opt(&fragments_jobj)?
         .map(|vec| vec.into_iter().map(|i| i as u32).collect());
     let index_uuid = env.get_string_opt(&index_uuid_jobj)?;
     let arrow_stream_addr_opt = env.get_long_opt(&arrow_stream_addr_jobj)?;
@@ -1373,7 +1373,7 @@ fn inner_get_fragments<'local>(
 pub extern "system" fn Java_org_lance_Dataset_getFragmentNative<'a>(
     mut env: JNIEnv<'a>,
     jdataset: JObject,
-    fragment_id: jint,
+    fragment_id: jlong,
 ) -> JObject<'a> {
     ok_or_throw!(env, inner_get_fragment(&mut env, jdataset, fragment_id))
 }
@@ -1381,7 +1381,7 @@ pub extern "system" fn Java_org_lance_Dataset_getFragmentNative<'a>(
 fn inner_get_fragment<'local>(
     env: &mut JNIEnv<'local>,
     jdataset: JObject,
-    fragment_id: jint,
+    fragment_id: jlong,
 ) -> Result<JObject<'local>> {
     let fragment = {
         let dataset =
@@ -2971,7 +2971,7 @@ pub extern "system" fn Java_org_lance_Dataset_nativeCountIndexedRows(
     java_dataset: JObject,
     jindex_name: JString,
     jfilter: JString,
-    jfragment_ids: JObject, // Optional<List<Integer>>
+    jfragment_ids: JObject, // Optional<List<Long>>
 ) -> jlong {
     ok_or_throw_with_return!(
         env,
@@ -2985,12 +2985,12 @@ fn inner_count_indexed_rows(
     java_dataset: JObject,
     _jindex_name: JString,
     jfilter: JString,
-    jfragment_ids: JObject, // Optional<List<Integer>>
+    jfragment_ids: JObject, // Optional<List<Long>>
 ) -> Result<i64> {
     let filter: String = jfilter.extract(env)?;
 
     // Extract optional fragment IDs
-    let fragment_ids: Option<Vec<u32>> = if env
+    let fragment_ids: Option<Vec<u64>> = if env
         .call_method(&jfragment_ids, "isPresent", "()Z", &[])?
         .z()?
     {
@@ -3001,8 +3001,8 @@ fn inner_count_indexed_rows(
         let mut ids = Vec::new();
         let mut iter = list.iter(env)?;
         while let Some(elem) = iter.next(env)? {
-            let int_val = env.call_method(&elem, "intValue", "()I", &[])?.i()?;
-            ids.push(int_val as u32);
+            let long_val = env.call_method(&elem, "longValue", "()J", &[])?.j()?;
+            ids.push(long_val as u64);
         }
         Some(ids)
     } else {
@@ -3036,7 +3036,7 @@ fn inner_count_indexed_rows(
                 let filtered_fragments: Vec<_> = inner
                     .get_fragments()
                     .into_iter()
-                    .filter(|f| frag_ids.contains(&(f.id() as u32)))
+                    .filter(|f| frag_ids.contains(&(f.id() as u64)))
                     .map(|f| f.metadata().clone())
                     .collect();
                 scanner.with_fragments(filtered_fragments);
@@ -3226,7 +3226,7 @@ fn inner_get_zonemap_stats<'local>(
         })?;
 
     for i in 0..record_batch.num_rows() {
-        let fragment_id = fragment_id_col.value(i) as i32;
+        let fragment_id = fragment_id_col.value(i) as i64;
         let zone_start = zone_start_col.value(i) as i64;
         let zone_length = zone_length_col.value(i) as i64;
         let null_count = null_count_col.value(i) as i64;
@@ -3244,9 +3244,9 @@ fn inner_get_zonemap_stats<'local>(
 
         let zone_stats = env.new_object(
             "org/lance/index/scalar/ZoneStats",
-            "(IJJLjava/lang/Comparable;Ljava/lang/Comparable;J)V",
+            "(JJJLjava/lang/Comparable;Ljava/lang/Comparable;J)V",
             &[
-                JValue::Int(fragment_id),
+                JValue::Long(fragment_id),
                 JValue::Long(zone_start),
                 JValue::Long(zone_length),
                 JValue::Object(&j_min),

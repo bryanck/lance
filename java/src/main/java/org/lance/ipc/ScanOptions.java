@@ -22,7 +22,7 @@ import java.util.Optional;
 
 /** Lance scan options. */
 public class ScanOptions {
-  private final Optional<List<Integer>> fragmentIds;
+  private final Optional<List<Long>> fragmentIds;
   private final Optional<Long> batchSize;
   private final Optional<List<String>> columns;
   private final Optional<String> filter;
@@ -61,7 +61,7 @@ public class ScanOptions {
    * @param substraitAggregate (Optional) Substrait aggregate expression for aggregate pushdown.
    */
   public ScanOptions(
-      Optional<List<Integer>> fragmentIds,
+      Optional<List<Long>> fragmentIds,
       Optional<Long> batchSize,
       Optional<List<String>> columns,
       Optional<String> filter,
@@ -103,7 +103,7 @@ public class ScanOptions {
    *
    * @return Optional containing the fragment ids if specified, otherwise empty.
    */
-  public Optional<List<Integer>> getFragmentIds() {
+  public Optional<List<Long>> getFragmentIds() {
     return fragmentIds;
   }
 
@@ -265,7 +265,7 @@ public class ScanOptions {
 
   /** Builder for constructing LanceScanOptions. */
   public static class Builder {
-    private Optional<List<Integer>> fragmentIds = Optional.empty();
+    private Optional<List<Long>> fragmentIds = Optional.empty();
     private Optional<Long> batchSize = Optional.empty();
     private Optional<List<String>> columns = Optional.empty();
     private Optional<String> filter = Optional.empty();
@@ -314,7 +314,7 @@ public class ScanOptions {
      * @param fragmentIds the id of the fragments to scan
      * @return Builder instance for method chaining.
      */
-    public Builder fragmentIds(List<Integer> fragmentIds) {
+    public Builder fragmentIds(List<Long> fragmentIds) {
       this.fragmentIds = Optional.of(fragmentIds);
       return this;
     }

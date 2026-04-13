@@ -1002,7 +1002,7 @@ public class Dataset implements Closeable {
       IndexParams params,
       boolean replace,
       boolean train,
-      Optional<List<Integer>> fragments,
+      Optional<List<Long>> fragments,
       Optional<String> indexUUID,
       Optional<Long> arrowStreamMemoryAddress);
 
@@ -1125,8 +1125,7 @@ public class Dataset implements Closeable {
    * @param fragmentIds optional list of fragment IDs to restrict the count to
    * @return count of matching rows
    */
-  public long countIndexedRows(
-      String indexName, String filter, Optional<List<Integer>> fragmentIds) {
+  public long countIndexedRows(String indexName, String filter, Optional<List<Long>> fragmentIds) {
     try (LockManager.ReadLock readLock = lockManager.acquireReadLock()) {
       Preconditions.checkArgument(nativeDatasetHandle != 0, "Dataset is closed");
       Preconditions.checkArgument(
@@ -1138,7 +1137,7 @@ public class Dataset implements Closeable {
   }
 
   private native long nativeCountIndexedRows(
-      String indexName, String filter, Optional<List<Integer>> fragmentIds);
+      String indexName, String filter, Optional<List<Long>> fragmentIds);
 
   /**
    * Calculate the size of the dataset.
@@ -1547,12 +1546,12 @@ public class Dataset implements Closeable {
     }
   }
 
-  public Fragment getFragment(int fragmentId) {
+  public Fragment getFragment(long fragmentId) {
     FragmentMetadata metadata = getFragmentNative(fragmentId);
     return new Fragment(this, metadata);
   }
 
-  private native FragmentMetadata getFragmentNative(int fragmentId);
+  private native FragmentMetadata getFragmentNative(long fragmentId);
 
   /**
    * Returns a {@link Tags} instance for performing tag-related operations on the dataset.

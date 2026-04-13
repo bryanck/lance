@@ -48,6 +48,9 @@ pub trait JNIEnvExt {
     /// Get Option<Vec<i32>> from Java Optional<List<Integer>>.
     fn get_ints_opt(&mut self, obj: &JObject) -> Result<Option<Vec<i32>>>;
 
+    /// Get Option<Vec<i64>> from Java Optional<List<Long>>.
+    fn get_longs_opt(&mut self, obj: &JObject) -> Result<Option<Vec<i64>>>;
+
     /// Get Option<i64> from Java Optional<Long>.
     fn get_long_opt(&mut self, obj: &JObject) -> Result<Option<i64>>;
 
@@ -225,6 +228,10 @@ impl JNIEnvExt for JNIEnv<'_> {
 
     fn get_ints_opt(&mut self, obj: &JObject) -> Result<Option<Vec<i32>>> {
         self.get_optional(obj, |env, java_list_obj| env.get_integers(&java_list_obj))
+    }
+
+    fn get_longs_opt(&mut self, obj: &JObject) -> Result<Option<Vec<i64>>> {
+        self.get_optional(obj, |env, java_list_obj| env.get_longs(&java_list_obj))
     }
 
     fn get_long_opt(&mut self, obj: &JObject) -> Result<Option<i64>> {

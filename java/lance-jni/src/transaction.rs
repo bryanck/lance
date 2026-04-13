@@ -173,7 +173,7 @@ impl FromJObjectWithEnv<IndexMetadata> for JObject<'_> {
 
         let fragment_bitmap: Option<RoaringBitmap> =
             env.get_optional_from_method(self, "fragments", |env, fragments_obj| {
-                let frag_ids = env.get_integers(&fragments_obj)?;
+                let frag_ids = env.get_longs(&fragments_obj)?;
                 let bitmap = frag_ids
                     .iter()
                     .map(|val| *val as u32)

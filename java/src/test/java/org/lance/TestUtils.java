@@ -295,7 +295,7 @@ public class TestUtils {
       assertNotNull(dataset);
       List<Fragment> fragments = dataset.getFragments();
       assertEquals(1, fragments.size());
-      assertEquals(0, fragments.get(0).getId());
+      assertEquals(0L, fragments.get(0).getId());
       assertEquals(9, fragments.get(0).countRows());
       assertEquals(schema, dataset.getSchema());
     }
